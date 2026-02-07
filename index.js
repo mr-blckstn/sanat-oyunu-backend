@@ -14,7 +14,14 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: CLIENT_URL,
+        origin: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://192.168.3.2:5173", // Local Network
+            "https://heumrage.com",    // Production Frontend
+            "http://heumrage.com",
+            "https://www.heumrage.com"
+        ],
         methods: ["GET", "POST"]
     }
 });
@@ -66,6 +73,9 @@ const getPublicRooms = () => {
 };
 
 const broadcastState = (room) => {
+    const wordsToSend = room.players.filter(p => p.word).map(p => ({ username: p.username, word: p.word }));
+    console.log('[DEBUG] Broadcasting words:', wordsToSend);
+
     io.to(room.code).emit('game_state_update', {
         phase: room.state.phase,
         timer: room.state.timer,
@@ -76,7 +86,7 @@ const broadcastState = (room) => {
             writerId: room.state.turnOrder ? room.state.turnOrder[room.state.turnIndex] : null,
             writerName: room.state.turnOrder ? room.players.find(p => p.id === room.state.turnOrder[room.state.turnIndex])?.username : null
         },
-        words: room.players.filter(p => p.word).map(p => ({ username: p.username, word: p.word }))
+        words: wordsToSend
     });
 };
 
