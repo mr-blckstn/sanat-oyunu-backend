@@ -5,8 +5,8 @@ SketchQuest Render Deploy Paketi
    - Build Command: npm install
    - Start Command: node index.js
 3) Render Environment Variables:
-   - CLIENT_URL=https://heumrage.com
-   - VECB0T_API_BASE=https://heumrage.com/api
+   - CLIENT_URL=https://vechiron.com
+   - VECB0T_API_BASE=https://vechiron.com/api
    - SKETCHQUEST_GAME_SECRET=vecbot-sketchquest-secret
 
 Not:

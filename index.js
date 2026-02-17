@@ -5,8 +5,8 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 
 const app = express();
-const CLIENT_URL = process.env.CLIENT_URL || "*";
-const VECB0T_API_BASE = (process.env.VECB0T_API_BASE || 'https://heumrage.com/api').replace(/\/+$/, '');
+const CLIENT_URL = process.env.CLIENT_URL || "https://vechiron.com";
+const VECB0T_API_BASE = (process.env.VECB0T_API_BASE || 'https://vechiron.com/api').replace(/\/+$/, '');
 const SKETCHQUEST_GAME_SECRET = process.env.SKETCHQUEST_GAME_SECRET || 'vecbot-sketchquest-secret';
 
 app.use(cors({
@@ -20,7 +20,10 @@ const io = new Server(server, {
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://192.168.3.2:5173", // Local Network
-            "https://heumrage.com",    // Production Frontend
+            "https://vechiron.com",    // Production Frontend
+            "http://vechiron.com",
+            "https://www.vechiron.com",
+            "https://heumrage.com",
             "http://heumrage.com",
             "https://www.heumrage.com"
         ],
