@@ -6,6 +6,8 @@ const cors = require('cors');
 
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || "*";
+const VECB0T_API_BASE = (process.env.VECB0T_API_BASE || 'https://heumrage.com/api').replace(/\/+$/, '');
+const SKETCHQUEST_GAME_SECRET = process.env.SKETCHQUEST_GAME_SECRET || 'vecbot-sketchquest-secret';
 
 app.use(cors({
     origin: CLIENT_URL
@@ -70,6 +72,44 @@ const getPublicRooms = () => {
                 phase: r.state.phase // Add phase info
             };
         });
+};
+
+const notifyVecbotWinner = async (username) => {
+    if (!username) return;
+    try {
+        const resp = await fetch(`${VECB0T_API_BASE}/integrations/sketchquest-win`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-game-secret': SKETCHQUEST_GAME_SECRET,
+            },
+            body: JSON.stringify({ username }),
+        });
+
+        if (!resp.ok) {
+            const text = await resp.text();
+            console.error(`[SketchQuest] Vecbot puan güncelleme başarısız (${resp.status}): ${text}`);
+            return;
+        }
+        const data = await resp.json().catch(() => ({}));
+        console.log(`[SketchQuest] Vecbot puan +10 -> ${username}`, data);
+    } catch (err) {
+        console.error('[SketchQuest] Vecbot puan endpoint hatası:', err.message);
+    }
+};
+
+const awardMatchWinners = (room) => {
+    if (!room || room.state?.winnerAwardSent) return;
+    if (!Array.isArray(room.players) || room.players.length === 0) return;
+
+    const maxScore = Math.max(...room.players.map((p) => Number(p.score || 0)));
+    const winners = room.players.filter((p) => Number(p.score || 0) === maxScore);
+    if (!winners.length) return;
+
+    room.state.winnerAwardSent = true;
+    winners.forEach((winner) => {
+        notifyVecbotWinner((winner.username || '').trim());
+    });
 };
 
 const broadcastState = (room) => {
@@ -150,6 +190,7 @@ const handlePhaseTimeout = (room) => {
                 nextRound(room);
             } else {
                 // Match match end
+                awardMatchWinners(room);
                 setPhase(room, PHASE.MATCH_END, 30);
                 room.players.forEach(p => p.hasSkipped = false); // Reset skip flags
             }
@@ -438,6 +479,7 @@ const resetMatch = (room) => {
     room.state.turnOrder = null;
     room.state.turnIndex = 0;
     room.state.currentRound = 0;
+    room.state.winnerAwardSent = false;
     broadcastState(room);
     broadcastPlayerList(room);
     broadcastPublicRooms();
@@ -446,6 +488,7 @@ const resetMatch = (room) => {
 const startGame = async (room) => {
     room.state.currentRound = 0;
     room.state.totalRounds = room.rounds || 5;
+    room.state.winnerAwardSent = false;
 
     // Pre-fetch art for ALL rounds to avoid delays mid-game
     console.log(`[StartGame] Pre-fetching art for ${room.state.totalRounds} rounds...`);
@@ -494,7 +537,7 @@ io.on('connection', (socket) => {
             ownerId: socket.id,
             isPublic: isPublic,
             rounds: parseInt(rounds) || 5,
-            state: { phase: PHASE.LOBBY, timer: 0, turnIndex: 0, turnOrder: [] }
+            state: { phase: PHASE.LOBBY, timer: 0, turnIndex: 0, turnOrder: [], winnerAwardSent: false }
         };
 
         socket.join(code);
